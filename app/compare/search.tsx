@@ -20,9 +20,14 @@ export default function LLMSearch({
   const { data: results } = useQuery<Array<LLMWithMetadata>>({
     queryKey: ["llmCompareSearch", search],
     queryFn: async () => {
-      const res = await fetch(
-        "/compare/search?query=" + encodeURIComponent(search)
-      )
+      const searchUrl = new URL("/compare/search", window.location.href)
+
+      if (search) searchUrl.searchParams.set("query", search)
+
+      if (llms.length > 0)
+        searchUrl.searchParams.set("exclude", llms.map(x => x.id).join(","))
+
+      const res = await fetch(searchUrl)
 
       return await res.json()
     }

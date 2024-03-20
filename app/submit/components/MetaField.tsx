@@ -18,7 +18,7 @@ import { MetaProperty, MetaPropertyType } from "@prisma/client"
 import { useQuery } from "@tanstack/react-query"
 import { useCombobox } from "downshift"
 import { FileMinus2, FilePlus2, XIcon } from "lucide-react"
-import { useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { styled } from "react-tailwind-variants"
 import { MetaField } from "../content"
 
@@ -36,6 +36,8 @@ export function MetaFieldRow({
   const valueRef = useRef<HTMLInputElement>(null)
   const selectRef = useRef<HTMLButtonElement>(null)
   const selectValueRef = useRef<HTMLButtonElement>(null)
+  const noteRef = useRef<HTMLInputElement>(null)
+  const numberInputRef = useRef<HTMLInputElement>(null)
 
   const { data: results } = useQuery<Array<MetaProperty>>({
     queryKey: ["metadataProperties", name],
@@ -89,7 +91,6 @@ export function MetaFieldRow({
     defaultHighlightedIndex: 0,
     inputValue: name,
     onInputValueChange: ({ inputValue }) => {
-      console.log(inputValue)
       onChange({
         name: (inputValue || "")
           .toLowerCase()
@@ -117,6 +118,8 @@ export function MetaFieldRow({
 
           if (selectedItem.type === MetaPropertyType.Boolean) {
             selectValueRef.current?.focus()
+          } else if (selectedItem.type === MetaPropertyType.Number) {
+            numberInputRef.current?.focus()
           } else {
             valueRef.current?.focus()
           }
@@ -138,6 +141,12 @@ export function MetaFieldRow({
             : String(value)
     })
   }
+
+  useEffect(() => {
+    if (typeof note === "string" && noteRef.current) {
+      noteRef.current.focus()
+    }
+  }, [note, noteRef])
 
   return (
     <>
@@ -197,7 +206,7 @@ export function MetaFieldRow({
             disabled={!!property}
             onValueChange={handleValueChange}
           >
-            <SelectTypeTrigger ref={selectRef} className="w-full">
+            <SelectTypeTrigger ref={selectRef}>
               <SelectValue placeholder="type" />
             </SelectTypeTrigger>
             <SelectContent>
@@ -208,40 +217,41 @@ export function MetaFieldRow({
           </Select>
         </InputContainer>
         <InputContainer>
-          {type === MetaPropertyType.Boolean ? (
-            <Select
-              value={value ? "true" : "false"}
-              onValueChange={value => onChange({ value: value === "true" })}
-              required
+          <Select
+            value={value ? "true" : "false"}
+            onValueChange={value => onChange({ value: value === "true" })}
+            required
+          >
+            <SelectTypeTrigger
+              ref={selectValueRef}
+              hidden={type !== MetaPropertyType.Boolean}
             >
-              <SelectTypeTrigger ref={selectValueRef} className="w-full">
-                <SelectValue placeholder="true" />
-              </SelectTypeTrigger>
-              <SelectContent>
-                <SelectItem value="true">true</SelectItem>
-                <SelectItem value="false">false</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : type === MetaPropertyType.String ? (
-            <Input
-              value={String(value)}
-              ref={valueRef}
-              onChange={e =>
-                onChange({
-                  value: e.target.value
-                })
-              }
-              placeholder="value"
-              required
-            />
-          ) : (
-            <NumberInput
-              value={String(value)}
-              onChange={({ value }) => onChange({ value })}
-              required
-              className="border rounded-none grow shrink-0 basis-0 w-full"
-            />
-          )}
+              <SelectValue placeholder="true" />
+            </SelectTypeTrigger>
+            <SelectContent>
+              <SelectItem value="true">true</SelectItem>
+              <SelectItem value="false">false</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            value={String(value)}
+            ref={valueRef}
+            onChange={e =>
+              onChange({
+                value: e.target.value
+              })
+            }
+            hidden={type !== MetaPropertyType.String}
+            placeholder="value"
+            required
+          />
+          <NumberValueInput
+            value={String(value)}
+            onChange={({ value }) => onChange({ value })}
+            ref={numberInputRef}
+            required
+            hidden={type !== MetaPropertyType.Number}
+          />
         </InputContainer>
         <Button
           className="border border-outline-dimmest rounded-none h-full"
@@ -258,6 +268,7 @@ export function MetaFieldRow({
             <NoteInput
               value={note}
               onChange={e => onChange({ note: e.target.value })}
+              ref={noteRef}
               placeholder="Add note..."
             />
             <RemoveNoteButton
@@ -287,9 +298,9 @@ const {
   DownshiftPopover,
   DownshiftEmpty,
   ItemsContainer,
-  Item
+  Item,
+  NumberValueInput
 } = {
-  // Main containers
   MetaFieldContainer: styled("div", {
     base: "flex items-center w-full relative border-x first:border-t last:border-b border-outline-dimmest"
   }),
@@ -301,8 +312,6 @@ const {
       }
     }
   }),
-
-  // Downshift
   DownshiftPopover: styled("div", {
     base: "w-full max-w-xs rounded-lg border-2 border-outline-dimmer absolute top-12 left-0 bg-default z-10 shadow-lg z-30"
   }),
@@ -330,26 +339,30 @@ const {
       }
     }
   }),
-
-  // Notes
   NoteContainer: styled("div", {
     base: "flex w-full border-y border-l border-outline-dimmest"
   }),
   NoteContent: styled("div", {
     base: "flex justify-start h-6 relative w-[calc(100%/3+32px/3*2)] border-x border-outline-dimmest"
   }),
-
-  // UI Components
   Input: styled(InputComponent, {
     base: "grow shrink-0 basis-0 rounded-none border",
     variants: {
       groupItem: {
         true: "group/item"
+      },
+      hidden: {
+        true: "hidden"
       }
     }
   }),
   SelectTypeTrigger: styled(SelectTrigger, {
-    base: "grow shrink-0 basis-0 rounded-none border"
+    base: "grow shrink-0 basis-0 rounded-none border w-full",
+    variants: {
+      hidden: {
+        true: "hidden"
+      }
+    }
   }),
   AddNoteButton: styled("button", {
     base: "absolute right-2 top-1/2 -translate-y-1/2 flex p-1 rounded text-foreground-dimmest hidden group-focus-within:block z-10"
@@ -359,5 +372,13 @@ const {
   }),
   RemoveNoteButton: styled(Button, {
     base: "rounded-none h-full z-10 border-r border-l-2 border-y-0 hover:border-outline-dimmest"
+  }),
+  NumberValueInput: styled(NumberInput, {
+    base: "border rounded-none grow shrink-0 basis-0 w-full",
+    variants: {
+      hidden: {
+        true: "hidden"
+      }
+    }
   })
 }

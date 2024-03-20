@@ -3,11 +3,20 @@ import { LLMStatus, Prisma } from "@prisma/client"
 
 export async function GET(req: Request) {
   try {
-    const query = new URL(req.url).searchParams.get("query") || ""
+    const searchParams = new URL(req.url).searchParams
+    const query = searchParams.get("query") || ""
+    const exclude = searchParams.get("exclude") || ""
+
+    const idsToExclude = exclude
+      ? exclude.split(",").map(Number).filter(Boolean)
+      : []
 
     const results = await prisma.lLM.findMany({
       where: {
         status: LLMStatus.approved,
+        id: {
+          notIn: idsToExclude
+        },
         OR: [
           {
             name: {

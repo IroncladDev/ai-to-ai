@@ -41,7 +41,7 @@ model Vote {
 
 model LLM {
   id                 Int       @id @default(autoincrement())
-  name               String    @unique
+  name               String
   sourceDescription  String
   userId             Int
   status             LLMStatus @default(pending)

@@ -5,7 +5,13 @@ import { formatError } from "@/lib/errors"
 import { parseAbbrNumber } from "@/lib/numbers"
 import prisma from "@/lib/server/prisma"
 import { getSession } from "@/lib/server/utils/session"
-import { LLM, MetaProperty, MetaPropertyType, UserRole } from "@prisma/client"
+import {
+  LLM,
+  LLMStatus,
+  MetaProperty,
+  MetaPropertyType,
+  UserRole
+} from "@prisma/client"
 import { EmbedBuilder, WebhookClient } from "discord.js"
 import { z } from "zod"
 
@@ -62,6 +68,19 @@ export async function submit(_prevState: SubmitReturn, e: FormData) {
 
     if (hasDuplicates)
       throw new Error("Duplicate Metadata fields are not allowed")
+
+    const existingLLM = await prisma.lLM.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: "insensitive"
+        },
+        status: LLMStatus.approved
+      }
+    })
+
+    if (existingLLM)
+      throw new Error("Approved LLM with the same name already exists")
 
     const llm = await prisma.lLM.create({
       data: {

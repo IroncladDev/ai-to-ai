@@ -1,21 +1,19 @@
 import { parseAbbrNumber } from "@/lib/numbers"
 import { AlertTriangleIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { styled } from "react-tailwind-variants"
 import { Input } from "./ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
-export default function NumberInput({
-  value,
-  onChange,
-  required,
-  className
-}: {
-  value: string
-  onChange: (value: { abbr: string; value: number }) => void
-  required?: boolean
-  className?: string
-}) {
+const NumberInput = React.forwardRef<
+  HTMLInputElement,
+  {
+    value: string
+    onChange: (value: { abbr: string; value: number }) => void
+    required?: boolean
+    className?: string
+  }
+>(({ value, onChange, required, className }, ref) => {
   const [inputValue, setInputValue] = useState(value)
 
   const isValid = parseAbbrNumber(inputValue).success
@@ -42,6 +40,7 @@ export default function NumberInput({
           setInputValue(e.target.value.replace(/[^0-9.KMBT%]/g, ""))
         }
         className={className}
+        ref={ref}
         required={required}
       />
 
@@ -59,12 +58,16 @@ export default function NumberInput({
       )}
     </Container>
   )
+})
+NumberInput.displayName = "NumberInput"
+
+const { Container, AlertButton } = {
+  Container: styled("div", {
+    base: "flex basis-[33px] shrink-0 w-full grow relative items-center"
+  }),
+  AlertButton: styled("button", {
+    base: "absolute right-2 text-amber-500 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-400 p-1 rounded-md"
+  })
 }
 
-const Container = styled("div", {
-  base: "flex basis-[33px] shrink-0 w-full grow relative items-center"
-})
-
-const AlertButton = styled("button", {
-  base: "absolute right-2 text-amber-500 bg-amber-500/15 hover:bg-amber-500/25 hover:text-amber-400 p-1 rounded-md"
-})
+export default NumberInput
